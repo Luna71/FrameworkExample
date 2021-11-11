@@ -1,23 +1,19 @@
-local InventoryController = {}
 local InventoryRepository = require(game.ReplicatedStorage.Repositories.Repository)("Inventory")
-
-local inventoryUpdateEvents = {}
-function InventoryController.OnUpdate(fn)
-    table.insert(inventoryUpdateEvents, fn)
-end
-
-function Update()
-    for _, event in ipairs(inventoryUpdateEvents) do
-        event()
-    end
-end
+local InventoryController = {}
+local proxy = require(game.ReplicatedStorage.Controllers.Controller)(InventoryController, "InventoryController")
 
 function InventoryController.GetPlayerInventory(player)
-    
+    InventoryRepository.GetPlayerInventory(player)
+    local server = game:GetService("RunService"):IsServer() and "server" or "client"
+    print("Called controller from " .. server)
+    print("Argument:", player)
+    InventoryController.Update()
+    return "i am a result from the " .. server
 end
 
 function InventoryController.DeleteFromPlayerInventory(player, index)
-    InventoryRepository.GetPlayerInventory(player).Destroy(index)
-    Update()
+    InventoryRepository.DestroyFromInventory(player, index)
+    InventoryController.Update()
 end
 
+return proxy

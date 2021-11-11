@@ -3,3 +3,4 @@ local InventoryRepository = {}
 local state = {}
 
 
+return InventoryRepository
