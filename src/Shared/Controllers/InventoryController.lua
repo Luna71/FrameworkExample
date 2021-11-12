@@ -1,14 +1,19 @@
-local InventoryRepository = require(game.ReplicatedStorage.Repositories.Repository)("Inventory")
+local InventoryRepository
+if (game:GetService("RunService"):IsServer()) then
+    InventoryRepository = require(game.ServerScriptService.Repositories.InventoryRepository)
+end
+
 local InventoryController = {}
 local proxy = require(game.ReplicatedStorage.Controllers.Controller)(InventoryController, "InventoryController")
 
 function InventoryController.GetPlayerInventory(player)
-    InventoryRepository.GetPlayerInventory(player)
-    local server = game:GetService("RunService"):IsServer() and "server" or "client"
-    print("Called controller from " .. server)
-    print("Argument:", player)
-    InventoryController.Update()
-    return "i am a result from the " .. server
+    local items = InventoryRepository.GetInventory(player)
+    return items
+end
+
+function InventoryController.ValidateGetPlayerInventory(playerCalling, player)
+    if playerCalling == player then return true end
+    return false
 end
 
 function InventoryController.DeleteFromPlayerInventory(player, index)

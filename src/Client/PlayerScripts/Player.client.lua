@@ -4,6 +4,10 @@ InventoryController.OnUpdate = function()
     print("Inventory controller updated!")
 end
 
-print("I'm the client")
-local result = InventoryController.GetPlayerInventory("client arguments")
+print("Get my own items!")
+local result = InventoryController.GetPlayerInventory(game.Players.LocalPlayer)
+print("Controller call result:", result)
+
+print("Get some random persons items!")
+local result = InventoryController.GetPlayerInventory(nil)
 print("Controller call result:", result)
