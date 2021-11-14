@@ -16,9 +16,15 @@ function InventoryController.ValidateGetPlayerInventory(playerCalling, player)
     return false
 end
 
-function InventoryController.DeleteFromPlayerInventory(player, index)
-    InventoryRepository.DestroyFromInventory(player, index)
-    InventoryController.Update()
+function InventoryController.DestroyFromInventory(player, index)
+    local items = InventoryRepository.DestroyFromInventory(player, index)
+    InventoryController.Update(items)
+    return items
+end
+
+function InventoryController.ValidateDestroyFromInventory(playerCalling, player, index)
+    if playerCalling == player then return true end
+    return false
 end
 
 return proxy

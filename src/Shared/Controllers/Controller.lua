@@ -36,9 +36,9 @@ return function(Controller, controllerName)
         table.insert(updateEvents, fn)
     end
 
-    function Controller.Update()
+    function Controller.Update(state)
         for _, event in ipairs(updateEvents) do
-            event()
+            event(state)
         end
         if RunService:IsServer() then
             updateRemoteEvent:FireAllClients(controllerName)
@@ -46,8 +46,8 @@ return function(Controller, controllerName)
     end
 
     if RunService:IsClient() then
-        updateRemoteEvent.OnClientEvent:Connect(function()
-            Controller.Update()
+        updateRemoteEvent.OnClientEvent:Connect(function(state)
+            Controller.Update(state)
         end)
         
         return setmetatable({}, {__index = function(t, index)
@@ -57,6 +57,10 @@ return function(Controller, controllerName)
                 return function (...)
                     return updateRemoteFunction:InvokeServer(controllerName, index, ...)
                 end
+            end
+
+            if member == nil then
+                error("No method of " .. index .. " exists on controller " .. controllerName)
             end
             return member
         end})
