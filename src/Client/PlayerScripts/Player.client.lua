@@ -1,9 +1,9 @@
 local InventoryController = require(game.ReplicatedStorage.Controllers.InventoryController)
 
-InventoryController.OnUpdate = function(state)
+InventoryController.OnUpdate(function(state)
     print("Inventory controller updated!")
     print("State:", state)
-end
+end)
 
 print("Get my own items!")
 local getInventory = InventoryController.GetPlayerInventory(game.Players.LocalPlayer)

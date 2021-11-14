@@ -41,12 +41,13 @@ return function(Controller, controllerName)
             event(state)
         end
         if RunService:IsServer() then
-            updateRemoteEvent:FireAllClients(controllerName)
+            updateRemoteEvent:FireAllClients(controllerName, state)
         end
     end
 
     if RunService:IsClient() then
-        updateRemoteEvent.OnClientEvent:Connect(function(state)
+        updateRemoteEvent.OnClientEvent:Connect(function(updatedControllerName, state)
+            if updatedControllerName ~= controllerName then return end
             Controller.Update(state)
         end)
         
