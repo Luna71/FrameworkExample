@@ -1,1 +1,2 @@
 require(game.ReplicatedStorage.Controllers.InventoryController)
+require(game.ReplicatedStorage.Controllers.JobsController)

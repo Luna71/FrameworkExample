@@ -1,7 +1,7 @@
 local RunService = game:GetService("RunService")
 local InventoryRepository = {}
 local state = {
-    {name="Thunderfury, Blessed Blade of the Windseeker"},
+    {name="Thunderfury, Blessed Blade of the Windseeker SERVER"},
     {name="Garbage"}
 }
 

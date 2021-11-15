@@ -1,5 +1,6 @@
 local InventoryController = require(game.ReplicatedStorage.Controllers.InventoryController)
-
+local JobsController = require(game.ReplicatedStorage.Controllers.JobsController)
+--[[
 InventoryController.OnUpdate(function(state)
     print("Inventory controller updated!")
     print("State:", state)
@@ -25,3 +26,10 @@ print("Get call result:", getInventory)
 print("Call an invalid method")
 local notAMethod = InventoryController.ThisIsntAMethod(game.Players.LocalPlayer)
 print("Invalid method result :", notAMethod)
+]]--
+
+local pp: ProximityPrompt = workspace.Part.ProximityPrompt
+
+pp.Triggered:Connect(function()
+    print(JobsController.StartJob("GarbageCollection"))
+end)
