@@ -1,0 +1,14 @@
+[package]
+name = "enrique/jailbird"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+maid = "flamenco687/maid@3.2.2"
+knit = "sleitnick/knit@1.0.9"
+component = "sleitnick/component@2.0.0"
+enumList = "sleitnick/enum-list@1.0.2"	
+loader = "sleitnick/loader@1.0.2"	
+option = "sleitnick/option@1.0.2"	
+tableUtil = "sleitnick/table-util@1.1.1"	
