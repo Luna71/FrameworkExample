@@ -11,12 +11,27 @@ local Schedule = Knit.CreateService {
 
 --* ---- PUBLIC MEMBERS -----
 Schedule.TimeBlocks = {}
-Schedule.CurrentTimeBlock = nil
+Schedule.CurrentTimeBlock = 1
 Schedule.HourlyTick = Signal.new() 
 
-
-function Schedule:GetCurrentTimeBlock()
+-- Gets the current in-game hour
+function Schedule:GetTime()
     return self.CurrentTimeBlock
+end
+
+-- Gets all concrete activities in a given timeblock
+function Schedule:GetActivities(timeBlock: number)
+    return self.TimeBlocks[timeBlock]
+end
+
+-- Gets all time blocks and their values
+function Schedule:GetAllTimeBlocks()
+    return self.TimeBlocks
+end
+
+-- Inserts a concrete activity to a time block 
+function Schedule:InsertToTimeBlock(timeBlock: number, activity: table)
+    table.insert(self.TimeBlocks[timeBlock], activity)
 end
 
 
@@ -31,17 +46,12 @@ local function _SetUpSchedule()
 end
 
 --* ---- KNIT LIFE CYCLE -----
-
 function Schedule:KnitStart()
     _SetUpSchedule()
 
     Lighting.ClockTime = self.CurrentTimeBlock -- set the starting to the current time block each time the server starts
+    -- day night cycle and schedule changer
 
-    self.HourlyTick:Connect(function()
-        print("hour passed")
-    end)
-
-    --* day night cycle and schedule changer
     local previous = 0
     while true do
         Lighting.ClockTime += 0.025
