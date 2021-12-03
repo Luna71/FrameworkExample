@@ -10,20 +10,37 @@ local Schedule = Knit.CreateService {
 }
 
 Schedule.TimeBlocks = {}
+Schedule.CurrentTimeBlock = 1 
 
+--? maybe an enum is more benefitial than an array
 local function _SetUpSchedule()
     --* Sets each 1 hour block
     for _ = 1, 24 do
         table.insert(Schedule.TimeBlocks, {})
     end
-
-    print (Schedule.TimeBlocks)
 end
 
 
 
 function Schedule:KnitStart()
     _SetUpSchedule()
+
+    Lighting.ClockTime = self.CurrentTimeBlock -- set the starting to the current time block each time the server starts
+
+    --* day night cycle and schedule changer
+    
+    local previous = 0
+    while true do
+        Lighting.ClockTime += 0.01
+        previous = self.CurrentTimeBlock
+        self.CurrentTimeBlock = math.ceil(Lighting.ClockTime)
+
+        if self.CurrentTimeBlock > previous then
+            print (self.CurrentTimeBlock, math.ceil(Lighting.ClockTime)) 
+        end
+
+        task.wait()
+    end
 end
 
 
