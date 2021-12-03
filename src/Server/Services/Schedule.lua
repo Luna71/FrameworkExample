@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
-local Knit = require(ReplicatedStorage.Packages.knit)
+local Knit = require(ReplicatedStorage.Packages.Knit)
 
 local Schedule = Knit.CreateService {
     Name = "Schedule";
