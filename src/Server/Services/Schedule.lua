@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
+local Signal = require(ReplicatedStorage.Packages.Signal)
 local Knit = require(ReplicatedStorage.Packages.Knit)
 
 local Schedule = Knit.CreateService {
@@ -8,12 +9,18 @@ local Schedule = Knit.CreateService {
     Client = {};
 }
 
+--* ---- PUBLIC MEMBERS -----
 Schedule.TimeBlocks = {}
-Schedule.CurrentTimeBlock = 1 
+Schedule.CurrentTimeBlock = nil
+Schedule.HourlyTick = Signal.new() 
+
 
 function Schedule:GetCurrentTimeBlock()
     return self.CurrentTimeBlock
 end
+
+
+--* ---- PRIVATE MEMBERS -----
 
 --? maybe an enum is more benefitial than an array
 local function _SetUpSchedule()
@@ -23,6 +30,8 @@ local function _SetUpSchedule()
     end
 end
 
+--* ---- KNIT LIFE CYCLE -----
+
 function Schedule:KnitStart()
     _SetUpSchedule()
 
@@ -31,8 +40,8 @@ function Schedule:KnitStart()
     self.HourlyTick:Connect(function()
         print("hour passed")
     end)
-    --* day night cycle and schedule changer
 
+    --* day night cycle and schedule changer
     local previous = 0
     while true do
         Lighting.ClockTime += 0.025
@@ -40,8 +49,7 @@ function Schedule:KnitStart()
         self.CurrentTimeBlock = math.ceil(Lighting.ClockTime)
 
         if self.CurrentTimeBlock > previous then
-            --print ("Current time block:", self.CurrentTimeBlock, "Current ACTUAL TIME:", math.ceil(Lighting.ClockTime))
-            self.HourlyTick:Fire()
+            self.HourlyTick:Fire(self.CurrentTimeBlock)
         end
 
         task.wait()
