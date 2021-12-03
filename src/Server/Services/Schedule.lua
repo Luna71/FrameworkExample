@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
-
 local Knit = require(ReplicatedStorage.Packages.knit)
 
 local Schedule = Knit.CreateService {
@@ -29,6 +28,9 @@ function Schedule:KnitStart()
 
     Lighting.ClockTime = self.CurrentTimeBlock -- set the starting to the current time block each time the server starts
 
+    self.HourlyTick:Connect(function()
+        print("hour passed")
+    end)
     --* day night cycle and schedule changer
 
     local previous = 0
@@ -38,7 +40,8 @@ function Schedule:KnitStart()
         self.CurrentTimeBlock = math.ceil(Lighting.ClockTime)
 
         if self.CurrentTimeBlock > previous then
-            print ("Current time block:", self.CurrentTimeBlock, "Current ACTUAL TIME:", math.ceil(Lighting.ClockTime))
+            --print ("Current time block:", self.CurrentTimeBlock, "Current ACTUAL TIME:", math.ceil(Lighting.ClockTime))
+            self.HourlyTick:Fire()
         end
 
         task.wait()
