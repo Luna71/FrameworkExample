@@ -1,3 +1,8 @@
+--[[
+Schedule service: This service controls the day night cycle of the game and servers as a 
+time keeping service
+]]--
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
@@ -30,13 +35,12 @@ function Schedule:GetAllTimeBlocks()
 end
 
 -- Inserts a concrete activity to a time block 
-function Schedule:InsertToTimeBlock(timeBlock: number, activity: table)
+function Schedule:InsertToTimeBlock(timeBlock: number, activity: string)
     table.insert(self.TimeBlocks[timeBlock], activity)
 end
 
 
 --* ---- PRIVATE MEMBERS -----
-
 --? maybe an enum is more benefitial than an array
 local function _SetUpSchedule()
     --* Sets each 1 hour block
@@ -50,8 +54,8 @@ function Schedule:KnitStart()
     _SetUpSchedule()
 
     Lighting.ClockTime = self.CurrentTimeBlock -- set the starting to the current time block each time the server starts
+    
     -- day night cycle and schedule changer
-
     local previous = 0
     while true do
         Lighting.ClockTime += 0.025
