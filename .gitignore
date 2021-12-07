@@ -6,4 +6,4 @@
 /*.rbxl.lock
 
 #Test files
-src/Client/Game/Controllers/Test
+/src/Client/Game/Controllers/Test

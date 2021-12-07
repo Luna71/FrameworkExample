@@ -11,7 +11,9 @@ local Knit = require(ReplicatedStorage.Packages.Knit)
 
 local Schedule = Knit.CreateService {
     Name = "Schedule";
-    Client = {};
+    Client = {
+        ClientHourlyTick = Knit.CreateSignal()
+    };
 }
 
 --* ---- PUBLIC MEMBERS -----
@@ -76,6 +78,7 @@ function Schedule:KnitStart()
 
         if self.CurrentTimeBlock > previous then
             self.HourlyTick:Fire(self.CurrentTimeBlock)
+            self.Client.ClientHourlyTick:FireAll(self.CurrentTimeBlock)
         end
 
         task.wait()
