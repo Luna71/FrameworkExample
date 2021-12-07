@@ -24,7 +24,7 @@ function Schedule:GetTime()
     return self.CurrentTimeBlock
 end
 
--- Gets all concrete activities in a given timeblock
+-- Gets all concrete activity names in a given timeblock
 function Schedule:GetActivities(timeBlock: number)
     return self.TimeBlocks[timeBlock]
 end
@@ -34,7 +34,7 @@ function Schedule:GetAllTimeBlocks()
     return self.TimeBlocks
 end
 
--- Inserts a concrete activity to a time block 
+-- Inserts a concrete activity name to a time block 
 function Schedule:InsertToTimeBlock(timeBlock: number, activity: string)
     table.insert(self.TimeBlocks[timeBlock], activity)
 end
@@ -55,7 +55,7 @@ end
 --* ---- PRIVATE MEMBERS -----
 --? maybe an enum is more benefitial than an array
 local function _SetUpSchedule()
-    --* Sets each 1 hour block
+    --* Sets each 1 hour block of a 24 hour day
     for _ = 1, 24 do
         table.insert(Schedule.TimeBlocks, {})
     end
