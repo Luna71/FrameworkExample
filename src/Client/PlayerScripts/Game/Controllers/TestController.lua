@@ -13,7 +13,7 @@ function testController:KnitStart()
             print(currentTime)
         end)
 
-        print("test2")
+        print("test3")
 
         task.wait(1)
     end
