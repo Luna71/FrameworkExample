@@ -41,18 +41,16 @@ end
 
 --* ---- CLIENT MEMBERS -----
 function Schedule.Client:GetTime()
-    return self:GetTime()
+    return self.Server:GetTime()
 end
 
 function Schedule.Client:GetActivities()
-    return self:GetActivities()
+    return self.Server:GetActivities()
 end
 
 function Schedule.Client:GetAllTimeBlocks()
-    return self:GetAllTimeBlocks()
+    return self.Server:GetAllTimeBlocks()
 end
-
-
 
 --* ---- PRIVATE MEMBERS -----
 --? maybe an enum is more benefitial than an array
