@@ -6,4 +6,4 @@
 /*.rbxl.lock
 
 #Test files
-src/Client/Game/Controllers/TestController.lua
+src/Client/Game/Controllers/ClientTest.lua
