@@ -2,18 +2,20 @@
     Player stats service, use it to manipualte a given player stat or to 
     get player stat info.
     
-    - Methods:
-    ps:IncreaseStat(player: Player, statName: string, value) -> void
-        - Increase a player stat to a given value
+    -- Methods:
+    --+ ps:IncreaseStat(player: Player, statName: string, value) -> void
+        --#Increase a player stat to a given value
 
-    ps:DecreaseStat(player: Player, statName: string, value)
-        - Decrease a player stat to a given value
+        --+  ps:DecreaseStat(player: Player, statName: string, value) -> void
+        --#Decrease a player stat to a given value
 
-    ps:GetAllStats(player: Player)
-        - Gets all the player stats IN ARRAY FORM
-        
-    ps:GetStat(player: Player, statName: string)
-        - Gets a concrete player stat object value
+    --+  ps:GetAllStats(player: Player) -> void
+        --# Gets all the player stats IN ARRAY FORM
+        --*ClientExposed
+
+    --+  ps:GetStat(player: Player, statName: string) -> void
+        --# Gets a concrete player stat object value
+        --*ClientExposed        
 ]]
 
 
