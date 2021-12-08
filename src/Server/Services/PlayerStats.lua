@@ -1,5 +1,19 @@
 --[[
-    Initial
+    Player stats service, use it to manipualte a given player stat or to 
+    get player stat info.
+    
+    - Methods:
+    ps:IncreaseStat(player: Player, statName: string, value) -> void
+        - Increase a player stat to a given value
+
+    ps:DecreaseStat(player: Player, statName: string, value)
+        - Decrease a player stat to a given value
+
+    ps:GetAllStats(player: Player)
+        - Gets all the player stats IN ARRAY FORM
+        
+    ps:GetStat(player: Player, statName: string)
+        - Gets a concrete player stat object value
 ]]
 
 
@@ -12,25 +26,20 @@ local PlayerStats = Knit.CreateService {
     Client = {};
 }
 
---* ---- PROPERTIES -----
-PlayerStats.StatsPerPlayer = {}
+--* ---- PUBLIC MEMBER -----
 
---* ---- PUBLIC METHODS -----
-
--- Increase a player stat to a given value
-function PlayerStats:IncreaseStat(player: Player, stat: string, value: any)
-    local foundStat: NumberValue = player:FindFirstChild(stat, true)
+function PlayerStats:IncreaseStat(player: Player, statName: string, value: any)
+    local foundStat: NumberValue = player:FindFirstChild(statName, true)
 
     if foundStat then
         foundStat.Value += value
     else
-        warn(stat, "not found!")
+        warn(statName, "not found!")
     end
 end
 
--- Decrease a player stat to a given value
-function PlayerStats:DecreaseStat(player: Player, stat: string, value: any)
-    local foundStat: NumberValue = player:FindFirstChild(stat, true)
+function PlayerStats:DecreaseStat(player: Player, statName: string, value: any)
+    local foundStat: NumberValue = player:FindFirstChild(statName, true)
 
     if foundStat then
         foundStat.Value -= value
@@ -38,31 +47,45 @@ function PlayerStats:DecreaseStat(player: Player, stat: string, value: any)
             foundStat.Value = 0
         end 
     else
-        warn(stat, "not found!")
+        warn(statName, "not found!")
     end
 end
 
---// TODO change GetStats to use user ID instead of name
-function PlayerStats:GetStats(playerName: string)
-    local stats = Players:FindFirstChild(playerName):FindFirstChild("Stats"):GetChildren()
-    return stats
+function PlayerStats:GetAllStats(player: Player)
+    return player["Stats"]:GetChildren() 
 end
 
---* ---- PRIVATE PROPERTIES -----
+function PlayerStats:GetStat(player: Player, statName: string)
+    local stats =(player)["Stats"]
+    
+    for _, stat in ipairs(stats:GetChildren()) do
+        if stat.Name == statName then
+            return stat
+        end
+    end
+end
+
+
+function PlayerStats.Client:GetAllStats(player: Player)
+    return self.Server:GetAllStats(player)
+end
+
+function PlayerStats.Client:GetStat(player: Player, statName: string)
+    return self.Server:GetStat(player, statName)
+end
+--* ---- PRIVATE MEMBERS -----
 local stats = {
-    --* stats
+    -- stats
     Strenght = 0,
     Dexterity = 0,
     Reputation = 0,
     Inteligence = 0,
     Condition = 0,
 
-    --*Currency
+    -- Currency
     Cash = 0,
     CupNoodles = 0, --> premium currency
 }
-
---* ---- PRIVATE METHODS -----
 
 local function _CreateStat(name: string, type: string, parent: Folder)
     local stat = Instance.new(type)
@@ -74,9 +97,8 @@ end
 local function _InitStats(player)
     local statsFolder = Instance.new("Folder")
     statsFolder.Name = "Stats"
-    
+
     for statEntry, _ in pairs(stats) do
-        print(statEntry)
         _CreateStat(statEntry, "NumberValue", statsFolder)
     end
     
@@ -87,7 +109,6 @@ end
 function PlayerStats:KnitStart()
     Players.PlayerAdded:Connect(function(player)
         _InitStats(player)
-
     end)
 end
 
