@@ -13,7 +13,7 @@ local Schedule = Knit.CreateService {
     Name = "Schedule";
     Client = {
         ClientHourlyTick = Knit.CreateSignal()
-    };
+};
 }
 
 --* ---- PUBLIC MEMBERS -----
