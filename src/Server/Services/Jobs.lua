@@ -21,19 +21,20 @@ Jobs.JobMarkers = {}
 function Jobs:KnitStart()
     Schedule.HourlyTick:Connect(function(currenTime)
         print(currenTime)
-        if currenTime == TestJobComp.StartTime and currenTime then
-            for _, jobMarker in ipairs(CollectionService:GetTagged("JobMarker")) do
+
+        for _, jobMarker in ipairs(CollectionService:GetTagged("JobMarker")) do
+            if currenTime == TestJobComp.StartTime and currenTime then
                 CollectionService:AddTag(jobMarker, "TestJob")
+
             end
         end
         
-        if currenTime == TestJobComp.EndTime then
-            for _, jobMarker in ipairs(CollectionService:GetTagged("JobMarker")) do
+        for _, jobMarker in ipairs(CollectionService:GetTagged("JobMarker")) do
+            if currenTime == TestJobComp.EndTime then
                 CollectionService:RemoveTag(jobMarker, "TestJob")
             end
         end
-    end)    
-    
+    end)
 end
 
 
