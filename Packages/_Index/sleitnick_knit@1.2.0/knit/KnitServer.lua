@@ -1,15 +1,3 @@
---[[
-
-	Knit.CreateService(service): Service
-	Knit.CreateSignal(): SIGNAL_MARKER
-	Knit.AddServices(folder): Service[]
-	Knit.AddServicesDeep(folder): Service[]
-	Knit.Start(): Promise<void>
-	Knit.OnStart(): Promise<void>
-
---]]
-
-
 --[=[
 	@interface ServiceDef
 	.Name string
@@ -36,7 +24,6 @@ type Service = {
 	Name: string,
 	Client: ServiceClient,
 	KnitComm: any,
-	_knit_is_service: boolean,
 	[any]: any,
 }
 
@@ -51,22 +38,61 @@ type ServiceClient = {
 	[any]: any,
 }
 
+--[=[
+	@type ServerMiddlewareFn (player: Player, args: {any}) -> (shouldContinue: boolean, ...: any)
+	@within KnitServer
+
+	For more info, see [ServerComm](https://sleitnick.github.io/RbxUtil/api/ServerComm/) documentation.
+]=]
+
+--[=[
+	@interface KnitOptions
+	.InboundMiddleware ServerMiddlewareFn?
+	.OutboundMiddleware ServerMiddlewareFn?
+	@within KnitServer
+
+	- `InboundMiddleware` and `OutboundMiddleware` default to `nil`.
+]=]
+type KnitOptions = {
+	InboundMiddleware: {(...any) -> (boolean, ...any)}?,
+	OutboundMiddleware: {(...any) -> (boolean, ...any)}?,
+}
+
+local defaultOptions: KnitOptions = {
+	InboundMiddleware = nil;
+	OutboundMiddleware = nil;
+}
+
+local selectedOptions = nil
 
 --[=[
 	@class KnitServer
 	@server
+	Knit server-side lets developers create services and expose methods and signals
+	to the clients.
+
+	```lua
+	local Knit = require(somewhere.Knit)
+
+	-- Load service modules within some folder:
+	Knit.AddServices(somewhere.Services)
+
+	-- Start Knit:
+	Knit.Start():andThen(function()
+		print("Knit started")
+	end):catch(warn)
+	```
 ]=]
 local KnitServer = {}
 
 --[=[
-	@prop Services {[string]: Service}
-	@within KnitServer
-]=]
-KnitServer.Services = {} :: {[string]: Service}
-
---[=[
 	@prop Util Folder
 	@within KnitServer
+	@readonly
+	References the Util folder. Should only be accessed when using Knit as
+	a standalone module. If using Knit from Wally, modules should just be
+	pulled in via Wally instead of relying on Knit's Util folder, as this
+	folder only contains what is necessary for Knit to run in Wally mode.
 ]=]
 KnitServer.Util = script.Parent.Parent
 
@@ -79,11 +105,10 @@ local knitRepServiceFolder = Instance.new("Folder")
 knitRepServiceFolder.Name = "Services"
 
 local Promise = require(KnitServer.Util.Promise)
-local Loader = require(KnitServer.Util.Loader)
-local TableUtil = require(KnitServer.Util.TableUtil)
 local Comm = require(KnitServer.Util.Comm)
 local ServerComm = Comm.ServerComm
 
+local services: {[string]: Service} = {}
 local started = false
 local startedComplete = false
 local onStartedComplete = Instance.new("BindableEvent")
@@ -98,7 +123,7 @@ end
 
 
 local function DoesServiceExist(serviceName: string): boolean
-	local service: Service? = KnitServer.Services[serviceName]
+	local service: Service? = services[serviceName]
 	return service ~= nil
 end
 
@@ -107,65 +132,95 @@ end
 	@param serviceDefinition ServiceDef
 	@return Service
 	Constructs a new service.
+
+	:::caution
+	Services must be created _before_ calling `Knit.Start()`.
+	:::
+	```lua
+	-- Create a service
+	local MyService = Knit.CreateService {
+		Name = "MyService";
+		Client = {};
+	}
+
+	-- Expose a ToAllCaps remote function to the clients
+	function MyService.Client:ToAllCaps(player, msg)
+		return msg:upper()
+	end
+
+	-- Knit will call KnitStart after all services have been initialized
+	function MyService:KnitStart()
+		print("MyService started")
+	end
+
+	-- Knit will call KnitInit when Knit is first started
+	function MyService:KnitInit()
+		print("MyService initialize")
+	end
+	```
 ]=]
 function KnitServer.CreateService(serviceDef: ServiceDef): Service
 	assert(type(serviceDef) == "table", "Service must be a table; got " .. type(serviceDef))
 	assert(type(serviceDef.Name) == "string", "Service.Name must be a string; got " .. type(serviceDef.Name))
 	assert(#serviceDef.Name > 0, "Service.Name must be a non-empty string")
 	assert(not DoesServiceExist(serviceDef.Name), "Service \"" .. serviceDef.Name .. "\" already exists")
-	local service: Service = TableUtil.Assign(serviceDef, {
-		_knit_is_service = true;
-		KnitComm = ServerComm.new(CreateRepFolder(serviceDef.Name));
-	})
+	local service = serviceDef
+	service.KnitComm = ServerComm.new(CreateRepFolder(serviceDef.Name))
 	if type(service.Client) ~= "table" then
 		service.Client = {Server = service}
 	else
 		if service.Client.Server ~= service then
 			service.Client.Server = service
 		end
-		for k,v in pairs(service.Client) do
-			if v == SIGNAL_MARKER then
-				service.Client[k] = service.KnitComm:CreateSignal(k)
-			end
-		end
 	end
-	KnitServer.Services[service.Name] = service
+	services[service.Name] = service
 	return service
 end
 
 
 --[=[
 	@param parent Instance
-	@return {any}
+	@return services: {Service}
 	Requires all the modules that are children of the given parent. This is an easy
 	way to quickly load all services that might be in a folder.
 	```lua
 	Knit.AddServices(somewhere.Services)
 	```
 ]=]
-function KnitServer.AddServices(parent: Instance): {any}
-	return Loader.LoadChildren(parent)
+function KnitServer.AddServices(parent: Instance): {Service}
+	local addedServices = {}
+	for _,v in ipairs(parent:GetChildren()) do
+		if not v:IsA("ModuleScript") then continue end
+		table.insert(addedServices, require(v))
+	end
+	return addedServices
 end
 
 
 --[=[
 	@param parent Instance
-	@return {any}
+	@return services: {Service}
 	Requires all the modules that are descendants of the given parent.
 ]=]
-function KnitServer.AddServicesDeep(parent: Instance): {any}
-	return Loader.LoadDescendants(parent)
+function KnitServer.AddServicesDeep(parent: Instance): {Service}
+	local addedServices = {}
+	for _,v in ipairs(parent:GetDescendants()) do
+		if not v:IsA("ModuleScript") then continue end
+		table.insert(addedServices, require(v))
+	end
+	return addedServices
 end
 
 
 --[=[
 	@param serviceName string
-	@return Service?
-	Gets the service by name, or `nil` if it is not found.
+	@return Service
+	Gets the service by name. Throws an error if the service is not found.
 ]=]
 function KnitServer.GetService(serviceName: string): Service
+	assert(started, "Cannot call GetService until Knit has been started")
 	assert(type(serviceName) == "string", "ServiceName must be a string; got " .. type(serviceName))
-	return assert(KnitServer.Services[serviceName], "Could not find service \"" .. serviceName .. "\"") :: Service
+	return assert(services[serviceName], "Could not find service \"" .. serviceName .. "\"") :: Service
 end
 
 
@@ -195,8 +250,12 @@ end
 
 
 --[=[
+	@param options KnitOptions?
 	@return Promise
 	Starts Knit. Should only be called once.
+
+	Optionally, `KnitOptions` can be passed in order to set
+	Knit's custom configurations.
 
 	:::caution
 	Be sure that all services have been created _before_ calling `Start`. Services cannot be added later.
@@ -207,8 +266,22 @@ end
 		print("Knit started!")
 	end):catch(warn)
 	```
+	
+	Example of Knit started with options:
+	```lua
+	Knit.Start({
+		InboundMiddleware: {
+			function(player, args)
+				print("Player is giving following args to server:", args)
+				return true
+			end
+		}
+	}):andThen(function()
+		print("Knit started!")
+	end):catch(warn)
+	```
 ]=]
-function KnitServer.Start()
+function KnitServer.Start(options: KnitOptions?)
 
 	if started then
 		return Promise.reject("Knit already started")
@@ -216,7 +289,17 @@ function KnitServer.Start()
 
 	started = true
 
-	local services = KnitServer.Services
+	if options == nil then
+		selectedOptions = defaultOptions
+	else
+		assert(typeof(options) == "table", "KnitOptions should be a table or nil; got " .. typeof(options))
+		selectedOptions = options
+		for k,v in pairs(defaultOptions) do
+			if selectedOptions[k] == nil then
+				selectedOptions[k] = v
+			end
+		end
+	end
 
 	return Promise.new(function(resolve)
 
@@ -224,9 +307,9 @@ function KnitServer.Start()
 		for _,service in pairs(services) do
 			for k,v in pairs(service.Client) do
 				if type(v) == "function" then
-					service.KnitComm:WrapMethod(service.Client, k)
+					service.KnitComm:WrapMethod(service.Client, k, selectedOptions.InboundMiddleware, selectedOptions.OutboundMiddleware)
 				elseif v == SIGNAL_MARKER then
-					service.Client[k] = service.KnitComm:CreateSignal(k)
+					service.Client[k] = service.KnitComm:CreateSignal(k, selectedOptions.InboundMiddleware, selectedOptions.OutboundMiddleware)
 				end
 			end
 		end

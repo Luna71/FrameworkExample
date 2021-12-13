@@ -1,16 +1,3 @@
---[[
-
-	Knit.CreateController(controller): Controller
-	Knit.AddControllers(folder): Controller[]
-	Knit.AddControllersDeep(folder): Controller[]
-	Knit.GetService(serviceName): Service
-	Knit.GetController(controllerName): Controller
-	Knit.Start(): Promise<void>
-	Knit.OnStart(): Promise<void>
-
---]]
-
-
 --[=[
 	@interface ControllerDef
 	.Name string
@@ -42,6 +29,37 @@ type Service = {
 	[any]: any,
 }
 
+--[=[
+	@type ClientMiddlewareFn (args: {any}) -> (shouldContinue: boolean, ...: any)
+	@within KnitClient
+
+	For more info, see [ClientComm](https://sleitnick.github.io/RbxUtil/api/ClientComm/) documentation.
+]=]
+
+--[=[
+	@interface KnitOptions
+	.ServicePromises boolean?
+	.InboundMiddleware ClientMiddlewareFn?
+	.OutboundMiddleware ClientMiddlewareFn?
+	@within KnitClient
+
+	- `ServicePromises` defaults to `true` and indicates if service methods use promises.
+	- `InboundMiddleware` and `OutboundMiddleware` default to `nil`.
+]=]
+type KnitOptions = {
+	ServicePromises: boolean,
+	InboundMiddleware: {(...any) -> (boolean, ...any)}?,
+	OutboundMiddleware: {(...any) -> (boolean, ...any)}?,
+}
+
+local defaultOptions: KnitOptions = {
+	ServicePromises = true;
+	InboundMiddleware = nil;
+	OutboundMiddleware = nil;
+}
+
+local selectedOptions = nil
+
 
 --[=[
 	@class KnitClient
@@ -52,30 +70,29 @@ local KnitClient = {}
 --[=[
 	@prop Player Player
 	@within KnitClient
-	Reference to the LocalPlayer
+	@readonly
+	Reference to the LocalPlayer.
 ]=]
 KnitClient.Player = game:GetService("Players").LocalPlayer
 
 --[=[
-	@prop Controllers {[string]: Controller}
-	@within KnitClient
-]=]
-KnitClient.Controllers = {} :: {[string]: Controller}
-
---[=[
 	@prop Util Folder
 	@within KnitClient
+	@readonly
+	References the Util folder. Should only be accessed when using Knit as
+	a standalone module. If using Knit from Wally, modules should just be
+	pulled in via Wally instead of relying on Knit's Util folder, as this
+	folder only contains what is necessary for Knit to run in Wally mode.
 ]=]
 KnitClient.Util = script.Parent.Parent
 
 local Promise = require(KnitClient.Util.Promise)
-local Loader = require(KnitClient.Util.Loader)
-local TableUtil = require(KnitClient.Util.TableUtil)
 local Comm = require(KnitClient.Util.Comm)
 local ClientComm = Comm.ClientComm
 
+local controllers: {[string]: Controller} = {}
 local services: {[string]: Service} = {}
-local servicesFolder = script.Parent:WaitForChild("Services")
+local servicesFolder = nil
 
 local started = false
 local startedComplete = false
@@ -83,15 +100,23 @@ local onStartedComplete = Instance.new("BindableEvent")
 
 
 local function BuildService(serviceName: string, folder: Instance): Service
-	local service = ClientComm.new(folder, true):BuildObject()
+	local service = ClientComm.new(folder, selectedOptions.ServicePromises):BuildObject(selectedOptions.InboundMiddleware, selectedOptions.OutboundMiddleware)
 	services[serviceName] = service
 	return service
 end
 
 
 local function DoesControllerExist(controllerName: string): boolean
-	local controller: Controller? = KnitClient.Controllers[controllerName]
+	local controller: Controller? = controllers[controllerName]
 	return controller ~= nil
+end
+
+
+local function GetServicesFolder()
+	if not servicesFolder then
+		servicesFolder = script.Parent:WaitForChild("Services")
+	end
+	return servicesFolder
 end
 
 
@@ -105,35 +130,43 @@ function KnitClient.CreateController(controllerDef: ControllerDef): Controller
 	assert(type(controllerDef.Name) == "string", "Controller.Name must be a string; got " .. type(controllerDef.Name))
 	assert(#controllerDef.Name > 0, "Controller.Name must be a non-empty string")
 	assert(not DoesControllerExist(controllerDef.Name), "Controller \"" .. controllerDef.Name .. "\" already exists")
-	local controller: Controller = TableUtil.Assign(controllerDef, {
-		_knit_is_controller = true;
-	})
-	KnitClient.Controllers[controller.Name] = controller
+	local controller = controllerDef :: Controller
+	controllers[controller.Name] = controller
 	return controller
 end
 
 
 --[=[
 	@param parent Instance
-	@return {any}
+	@return controllers: {Controller}
 	Requires all the modules that are children of the given parent. This is an easy
 	way to quickly load all controllers that might be in a folder.
 	```lua
 	Knit.AddControllers(somewhere.Controllers)
 	```
 ]=]
-function KnitClient.AddControllers(parent: Instance): {any}
-	return Loader.LoadChildren(parent)
+function KnitClient.AddControllers(parent: Instance): {Controller}
+	local addedControllers = {}
+	for _,v in ipairs(parent:GetChildren()) do
+		if not v:IsA("ModuleScript") then continue end
+		table.insert(addedControllers, require(v))
+	end
+	return addedControllers
 end
 
 
 --[=[
 	@param parent Instance
-	@return {any}
+	@return controllers: {Controller}
 	Requires all the modules that are descendants of the given parent.
 ]=]
 function KnitClient.AddControllersDeep(parent: Instance): {any}
-	return Loader.LoadDescendants(parent)
+	local addedControllers = {}
+	for _,v in ipairs(parent:GetDescendants()) do
+		if not v:IsA("ModuleScript") then continue end
+		table.insert(addedControllers, require(v))
+	end
+	return addedControllers
 end
 
 
@@ -152,8 +185,9 @@ end
 	:::
 ]=]
 function KnitClient.GetService(serviceName: string): Service
+	assert(started, "Cannot call GetService until Knit has been started")
 	assert(type(serviceName) == "string", "ServiceName must be a string; got " .. type(serviceName))
-	local folder: Instance? = servicesFolder:FindFirstChild(serviceName)
+	local folder: Instance? = GetServicesFolder():FindFirstChild(serviceName)
 	assert(folder ~= nil, "Could not find service \"" .. serviceName .. "\". Check the service name and that the service has client-facing methods/RemoteSignals/RemoteProperties.")
 	return services[serviceName] or BuildService(serviceName, folder :: Instance)
 end
@@ -162,23 +196,37 @@ end
 --[=[
 	@param controllerName string
 	@return Controller?
-	Gets the controller by name. Returns `nil` if not found. This is just
-	an alias for `KnitControllers.Controllers[controllerName]`.
+	Gets the controller by name. Throws an error if the controller
+	is not found.
 ]=]
-function KnitClient.GetController(controllerName: string): Controller?
-	return KnitClient.Controllers[controllerName]
+function KnitClient.GetController(controllerName: string): Controller
+	assert(started, "Cannot call GetController until Knit has been started")
+	assert(type(controllerName) == "string", "ControllerName must be a string; got " .. type(controllerName))
+	local controller = controllers[controllerName]
+	assert(controller ~= nil, " Could not find controller \"" .. controllerName .. "\". Check to verify a controller with this name exists.")
+	return controller
 end
 
 
 --[=[
-	Starts Knit.
+	@param options KnitOptions?
+	@return Promise
+	Starts Knit. Should only be called once per client.
 	```lua
 	Knit.Start():andThen(function()
 		print("Knit started!")
 	end):catch(warn)
 	```
+
+	By default, service methods exposed to the client will return promises.
+	To change this behavior, set the `ServicePromises` option to `false`:
+	```lua
+	Knit.Start({ServicePromises = false}):andThen(function()
+		print("Knit started!")
+	end):catch(warn)
+	```
 ]=]
-function KnitClient.Start()
+function KnitClient.Start(options: KnitOptions?)
 
 	if started then
 		return Promise.reject("Knit already started")
@@ -186,7 +234,17 @@ function KnitClient.Start()
 
 	started = true
 
-	local controllers = KnitClient.Controllers
+	if options == nil then
+		selectedOptions = defaultOptions
+	else
+		assert(typeof(options) == "table", "KnitOptions should be a table or nil; got " .. typeof(options))
+		selectedOptions = options
+		for k,v in pairs(defaultOptions) do
+			if selectedOptions[k] == nil then
+				selectedOptions[k] = v
+			end
+		end
+	end
 
 	return Promise.new(function(resolve)
 
@@ -231,7 +289,7 @@ end
 	that called `Start`.
 	```lua
 	Knit.OnStart():andThen(function()
-		local MyController = Knit.Controllers.MyController
+		local MyController = Knit.GetController("MyController")
 		MyController:DoSomething()
 	end):catch(warn)
 	```
