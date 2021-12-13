@@ -1,3 +1,6 @@
 {
     "better-comments.multilineComments": false,
+    "robloxLsp.diagnostics.disable": [
+        "undefined-global"
+    ],
 }

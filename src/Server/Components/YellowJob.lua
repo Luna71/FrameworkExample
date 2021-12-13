@@ -3,16 +3,16 @@ local Maid = require(ReplicatedStorage.Packages.Maid)
 local Component = require(ReplicatedStorage.Packages.Component)
 
 
-local TestJob = Component.new({
-  Tag = "TestJob",
+local YellowJob = Component.new({
+  Tag = "YellowJob",
   Ancestors = {workspace},
   Extensions = {}
 })
 
-TestJob.StartTime = 6
-TestJob.EndTime = 12
+YellowJob.StartTime = 6
+YellowJob.EndTime = 12
 
-function  TestJob:Construct()
+function  YellowJob:Construct()
   self.Maid =  Maid.new()
   
   self.ProxyimityPrompt = Instance.new("ProximityPrompt")
@@ -31,13 +31,13 @@ function  TestJob:Construct()
 end
 
 
-function TestJob:Start()
+function YellowJob:Start()
   print(self.Instance)
 end
 
-function TestJob:Stop()
+function YellowJob:Stop()
   self.Maid:Cleanup()
   print("cleaning")
 end
 
-return TestJob
+return YellowJob
