@@ -9,35 +9,37 @@ local BlueJob = Component.new({
   Extensions = {}
 })
 
-BlueJob.StartTime = 6
-BlueJob.EndTime = 12
+BlueJob.StartTime = 4
+BlueJob.EndTime = 10
+BlueJob.GameObject = Instance.new("Part")
+
 
 function  BlueJob:Construct()
   self.Maid =  Maid.new()
+  self.Instance.Name = "BlueJob"
+  self.Instance.BrickColor = BrickColor.new("Navy blue")
+  self.Instance.Anchored = true
   
   self.ProxyimityPrompt = Instance.new("ProximityPrompt")
   self.ProxyimityPrompt.Parent = self.Instance
-  self.ProxyimityPrompt.ObjectText = "TestJob"
-  self.ProxyimityPrompt.ActionText = "Interact!"
+  
+  self.ProxyimityPrompt.ObjectText = self.Instance.Name
+  self.ProxyimityPrompt.ActionText = "Start!"
   self.ProxyimityPrompt.HoldDuration = 1.5
   self.ProxyimityPrompt.MaxActivationDistance = 20
 
-
-
   self.Maid:GiveTask(self.ProxyimityPrompt)
-  
-  self.IsActive = false
-  print("Constructed")
+  self.Maid:GiveTask(self.Instance)
+
 end
 
 
 function BlueJob:Start()
-  print(self.Instance)
+  self.Instance.Position = workspace.SpawnLocation.position + Vector3.new(-10, 5, -10)
 end
 
 function BlueJob:Stop()
   self.Maid:Cleanup()
-  print("cleaning")
 end
 
 return BlueJob

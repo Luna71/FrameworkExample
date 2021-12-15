@@ -9,35 +9,39 @@ local GreenJob = Component.new({
   Extensions = {}
 })
 
-GreenJob.StartTime = 6
-GreenJob.EndTime = 12
+GreenJob.StartTime = 8
+GreenJob.EndTime = 14
+GreenJob.GameObject = Instance.new("Part")
+
 
 function  GreenJob:Construct()
+  print("Constructed")
+
   self.Maid =  Maid.new()
+  
+  self.Instance.Name = "GreenJob"
+  self.Instance.BrickColor = BrickColor.new("Dark green")
+  self.Instance.Anchored = true
   
   self.ProxyimityPrompt = Instance.new("ProximityPrompt")
   self.ProxyimityPrompt.Parent = self.Instance
-  self.ProxyimityPrompt.ObjectText = "TestJob"
-  self.ProxyimityPrompt.ActionText = "Interact!"
+  self.ProxyimityPrompt.ObjectText = self.Instance.Name
+  self.ProxyimityPrompt.ActionText = "Start!"
   self.ProxyimityPrompt.HoldDuration = 1.5
   self.ProxyimityPrompt.MaxActivationDistance = 20
 
+  self.Maid:GiveTask(self.ProxyimityPrompt)  
+  self.Maid:GiveTask(self.Instance)
 
-
-  self.Maid:GiveTask(self.ProxyimityPrompt)
-  
-  self.IsActive = false
-  print("Constructed")
 end
 
 
 function GreenJob:Start()
-  print(self.Instance)
+  self.Instance.Position = workspace.SpawnLocation.position + Vector3.new(10, 5, -10)
 end
 
 function GreenJob:Stop()
   self.Maid:Cleanup()
-  print("cleaning")
 end
 
 return GreenJob
