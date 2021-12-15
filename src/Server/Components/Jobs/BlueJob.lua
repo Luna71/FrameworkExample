@@ -19,7 +19,7 @@ function  BlueJob:Construct()
   self.Instance.Name = "BlueJob"
   self.Instance.BrickColor = BrickColor.new("Navy blue")
   self.Instance.Anchored = true
-  
+
   self.ProxyimityPrompt = Instance.new("ProximityPrompt")
   self.ProxyimityPrompt.Parent = self.Instance
   
