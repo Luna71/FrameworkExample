@@ -1,1 +1,1 @@
-print("Hello from server")
+require(game.ReplicatedStorage.Controllers.InventoryController)
